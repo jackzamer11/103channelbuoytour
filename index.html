@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: #0c0f10; overflow: hidden; }
+  @keyframes tourFade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes tourZoom { from { transform: scale(1.12); } to { transform: scale(1); } }
+  @keyframes hsPulse { 0% { transform: scale(1); opacity: .6; } 70% { transform: scale(2.1); opacity: 0; } 100% { opacity: 0; } }
+  @keyframes hsBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  @keyframes fadeUp { from { transform: translateY(16px); } to { transform: translateY(0); } }
+  @keyframes hintPulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+  ::-webkit-scrollbar { width: 0; height: 0; }
+</style>
+</helmet>
+
+<div data-screen-label="Virtual Tour" onMouseMove="{{ onMove }}" onMouseLeave="{{ onLeave }}" style="position: fixed; inset: 0; font-family: 'Archivo', system-ui, sans-serif; color: #fff; background: #0c0f10; user-select: none; -webkit-font-smoothing: antialiased;">
+
+  <!-- PHOTO STAGE -->
+  <div style="position: absolute; inset: 0; overflow: hidden;">
+    {{ photoBase }}
+    {{ photoTop }}
+    <div style="position: absolute; inset: 0; z-index: 3; pointer-events: none; background: radial-gradient(120% 90% at 50% 38%, transparent 52%, rgba(8,11,12,.55) 100%);"></div>
+    <div style="position: absolute; inset: 0; z-index: 3; pointer-events: none; background: linear-gradient(to bottom, rgba(8,11,12,.42) 0%, transparent 22%, transparent 58%, rgba(8,11,12,.72) 100%);"></div>
+  </div>
+
+  <!-- HOTSPOTS -->
+  <div style="position: absolute; inset: 0; z-index: 6; pointer-events: none;">
+    <sc-for list="{{ hotspots }}" as="h" hint-placeholder-count="0">
+      <button type="button" style="{{ h.posStyle }}" onClick="{{ h.onClick }}" aria-label="{{ h.label }}">
+        <span style="position: absolute; inset: 0; border-radius: 999px; border: 1.5px solid rgba(122,200,186,.9); animation: hsPulse 2.6s ease-out infinite;"></span>
+        <span style="position: relative; width: 46px; height: 46px; border-radius: 999px; display: grid; place-items: center; background: rgba(14,20,21,.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1.5px solid rgba(255,255,255,.85); box-shadow: 0 6px 22px rgba(0,0,0,.35); animation: hsBob 3.2s ease-in-out infinite; transition: background .2s, transform .2s;" style-hover="background: rgba(122,200,186,.92); transform: scale(1.08);">
+          <span style="font-size: 19px; line-height: 1; color: #fff; transform: translateY(-1px);">↗</span>
+        </span>
+        <span style="position: absolute; top: calc(100% + 9px); left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 10.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #fff; background: rgba(12,16,17,.55); backdrop-filter: blur(6px); padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.14);">{{ h.label }}</span>
+      </button>
+    </sc-for>
+  </div>
+
+  <!-- TOP PROGRESS -->
+  <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; z-index: 12; background: rgba(255,255,255,.13);">
+    <div style="height: 100%; width: {{ progressPct }}; background: linear-gradient(90deg, #7ac8ba, #9fd9cd); transition: width .7s cubic-bezier(.16,.84,.34,1);"></div>
+  </div>
+
+  <!-- TOP BAR -->
+  <sc-if value="{{ started }}" hint-placeholder-val="{{ true }}">
+  <div style="position: absolute; top: 0; left: 0; right: 0; z-index: 11; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 30px;">
+    <div style="display: flex; align-items: center; gap: 14px; min-width: 0;">
+      <div style="width: 34px; height: 34px; border-radius: 999px; border: 1.5px solid rgba(122,200,186,.85); display: grid; place-items: center; font-family: 'Cormorant Garamond', serif; font-size: 17px; font-weight: 600; color: #9fd9cd; flex: none;">103</div>
+      <div style="min-width: 0;">
+        <div style="font-size: 12.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;">Channel Buoy Road</div>
+        <div style="font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: rgba(255,255,255,.55); margin-top: 2px;">{{ sceneArea }}</div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="display: none; gap: 8px;" data-chips></div>
+      <button type="button" onClick="{{ toggleAutoplay }}" style="display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); background: rgba(15,20,22,.5); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: #fff; font-family: inherit; font-size: 11.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: background .2s;" style-hover="background: rgba(122,200,186,.22);">
+        <span style="font-size: 11px;">{{ autoGlyph }}</span>{{ autoLabel }}
+      </button>
+      <button type="button" onClick="{{ toggleIndex }}" style="display: inline-flex; align-items: center; gap: 9px; height: 38px; padding: 0 17px; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); background: rgba(15,20,22,.5); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: #fff; font-family: inherit; font-size: 11.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: background .2s;" style-hover="background: rgba(122,200,186,.22);">
+        <span style="display: grid; grid-template-columns: 1fr 1fr; gap: 2.5px;"><span style="width: 5px; height: 5px; background: currentColor; border-radius: 1px;"></span><span style="width: 5px; height: 5px; background: currentColor; border-radius: 1px;"></span><span style="width: 5px; height: 5px; background: currentColor; border-radius: 1px;"></span><span style="width: 5px; height: 5px; background: currentColor; border-radius: 1px;"></span></span>
+        All Rooms
+      </button>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- LOOK HINT -->
+  <sc-if value="{{ showHint }}" hint-placeholder-val="{{ false }}">
+  <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); z-index: 7; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 12px; animation: hintPulse 2.4s ease-in-out infinite;">
+    <span style="font-size: 22px;">✦</span>
+    <span style="font-size: 11px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: rgba(255,255,255,.85);">Move to look · click ↗ to walk</span>
+  </div>
+  </sc-if>
+
+  <!-- CAPTION -->
+  <sc-if value="{{ started }}" hint-placeholder-val="{{ true }}">
+  <div style="position: absolute; left: 30px; bottom: 30px; z-index: 11; max-width: 400px;">
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+      <span style="width: 22px; height: 1px; background: #7ac8ba;"></span>
+      <span style="font-size: 11px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: #9fd9cd;">{{ sceneArea }}</span>
+    </div>
+    <h1 style="margin: 0; font-family: 'Cormorant Garamond', serif; font-weight: 500; font-size: 46px; line-height: 1; letter-spacing: .005em;">{{ sceneTitle }}</h1>
+    <p style="margin: 12px 0 0; font-size: 14px; line-height: 1.6; color: rgba(255,255,255,.74); font-weight: 400; max-width: 360px; text-wrap: pretty;">{{ sceneCaption }}</p>
+    <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 16px; font-variant-numeric: tabular-nums;">
+      <span style="font-family: 'Cormorant Garamond', serif; font-size: 26px; color: #fff;">{{ num }}</span>
+      <span style="font-size: 12px; color: rgba(255,255,255,.4);">/ {{ total }}</span>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- CONTROLS -->
+  <sc-if value="{{ started }}" hint-placeholder-val="{{ true }}">
+  <div style="position: absolute; right: 30px; bottom: 30px; z-index: 11; display: flex; align-items: center; gap: 12px;">
+    <button type="button" onClick="{{ prev }}" aria-label="Previous" style="width: 50px; height: 50px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: rgba(15,20,22,.5); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: #fff; font-size: 19px; cursor: pointer; display: grid; place-items: center; transition: background .2s, border-color .2s;" style-hover="background: rgba(122,200,186,.22); border-color: rgba(122,200,186,.6);">‹</button>
+    <button type="button" onClick="{{ next }}" aria-label="Next" style="display: inline-flex; align-items: center; gap: 12px; height: 50px; padding: 0 8px 0 22px; border-radius: 999px; border: 1px solid rgba(122,200,186,.55); background: rgba(122,200,186,.18); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: #fff; font-family: inherit; font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; transition: background .2s;" style-hover="background: rgba(122,200,186,.34);">
+      Next Space
+      <span style="width: 36px; height: 36px; border-radius: 999px; background: #fff; color: #0c2722; display: grid; place-items: center; font-size: 18px;">›</span>
+    </button>
+  </div>
+  </sc-if>
+
+  <!-- INDEX OVERLAY -->
+  <sc-if value="{{ showIndex }}" hint-placeholder-val="{{ false }}">
+  <div style="position: absolute; inset: 0; z-index: 20; background: rgba(8,11,12,.86); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); overflow-y: auto; animation: fadeUp .35s ease both;">
+    <div style="max-width: 1180px; margin: 0 auto; padding: 40px 40px 60px;">
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 30px; padding-top: 8px;">
+        <div>
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: .24em; text-transform: uppercase; color: #9fd9cd; margin-bottom: 8px;">The Walkthrough</div>
+          <h2 style="margin: 0; font-family: 'Cormorant Garamond', serif; font-weight: 500; font-size: 40px; line-height: 1;">All Spaces</h2>
+        </div>
+        <button type="button" onClick="{{ toggleIndex }}" style="width: 46px; height: 46px; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); background: transparent; color: #fff; font-size: 20px; cursor: pointer; transition: background .2s;" style-hover="background: rgba(255,255,255,.1);">✕</button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+        <sc-for list="{{ thumbs }}" as="t" hint-placeholder-count="0">
+          <button type="button" onClick="{{ t.onClick }}" style="text-align: left; padding: 0; border: 0; background: transparent; cursor: pointer; font-family: inherit; color: #fff;">
+            <div style="{{ t.frameStyle }}" style-hover="transform: scale(1.03);">
+              <span style="position: absolute; left: 11px; top: 9px; font-family: 'Cormorant Garamond', serif; font-size: 18px; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.5);">{{ t.num }}</span>
+              <span style="{{ t.dotStyle }}"></span>
+            </div>
+            <div style="font-size: 13.5px; font-weight: 600; margin-top: 10px;">{{ t.title }}</div>
+            <div style="font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: rgba(255,255,255,.45); margin-top: 3px;">{{ t.area }}</div>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- INTRO COVER -->
+  <sc-if value="{{ notStarted }}" hint-placeholder-val="{{ true }}">
+  <div style="position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px; background-image: linear-gradient(to bottom, rgba(8,11,12,.5), rgba(8,11,12,.74)), url('assets/ext-front.jpg'); background-size: cover; background-position: center;">
+    <div style="animation: fadeUp .9s ease both;">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: .34em; text-transform: uppercase; color: #9fd9cd; margin-bottom: 22px;">Ocean City · Maryland</div>
+      <h1 style="margin: 0; font-family: 'Cormorant Garamond', serif; font-weight: 500; font-size: clamp(54px, 9vw, 128px); line-height: .92; letter-spacing: .01em;">103 Channel Buoy</h1>
+      <p style="margin: 20px auto 0; font-size: 15px; letter-spacing: .04em; color: rgba(255,255,255,.78); max-width: 440px; line-height: 1.6;">A waterfront coastal retreat on a private canal — step inside an interactive walkthrough of all sixteen spaces.</p>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 28px 0 34px;">
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.82); border: 1px solid rgba(255,255,255,.22); border-radius: 999px; padding: 7px 15px;">Canal-Front</span>
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.82); border: 1px solid rgba(255,255,255,.22); border-radius: 999px; padding: 7px 15px;">Private Dock</span>
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.82); border: 1px solid rgba(255,255,255,.22); border-radius: 999px; padding: 7px 15px;">Vaulted Great Room</span>
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.82); border: 1px solid rgba(255,255,255,.22); border-radius: 999px; padding: 7px 15px;">Loft Retreat</span>
+      </div>
+      <button type="button" onClick="{{ begin }}" style="display: inline-flex; align-items: center; gap: 16px; height: 60px; padding: 0 10px 0 30px; border-radius: 999px; border: 0; background: #fff; color: #0c2722; font-family: inherit; font-size: 13px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; cursor: pointer; box-shadow: 0 14px 40px rgba(0,0,0,.4); transition: transform .2s;" style-hover="transform: translateY(-2px);">
+        Begin the Tour
+        <span style="width: 42px; height: 42px; border-radius: 999px; background: #0c2722; color: #fff; display: grid; place-items: center; font-size: 19px;">→</span>
+      </button>
+    </div>
+    <div style="position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: rgba(255,255,255,.5);">16 Spaces · Interactive 3D Walkthrough</div>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;parallax&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0,&quot;max&quot;:2.5,&quot;step&quot;:0.1,&quot;tsType&quot;:&quot;number&quot;,&quot;unit&quot;:&quot;×&quot;,&quot;section&quot;:&quot;Tour&quot;},&quot;autoplaySeconds&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:5,&quot;min&quot;:2,&quot;max&quot;:12,&quot;step&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;unit&quot;:&quot;s&quot;,&quot;section&quot;:&quot;Tour&quot;},&quot;showHotspots&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Tour&quot;}}">
+class Component extends DCLogic {
+  state = { prevIdx: 0, curIdx: 0, navCount: 0, fadeReady: true, mx: 0, my: 0, started: false, autoplay: false, showIndex: false, hintSeen: false };
+
+  scenes = [
+    { img: 'assets/ext-front.jpg', area: 'Arrival', title: 'Welcome Home', caption: '103 Channel Buoy Road — a classic coastal cottage tucked onto a quiet canal in Ocean City, Maryland.', hotspots: [{ x: 41, y: 60, to: 1, label: 'Step Inside' }] },
+    { img: 'assets/foyer.jpg', area: 'Entry', title: 'The Foyer', caption: 'A tiled entry with glass French doors opening straight through to the light-filled main living spaces.', hotspots: [{ x: 19, y: 52, to: 2, label: 'Great Room' }] },
+    { img: 'assets/greatroom.jpg', area: 'Main Level', title: 'The Great Room', caption: 'Soaring vaulted ceilings, a wall of skylights, and a floor-to-mantel stacked-stone gas fireplace.', hotspots: [{ x: 28, y: 62, to: 3, label: 'The Hearth' }, { x: 84, y: 50, to: 4, label: 'Kitchen' }] },
+    { img: 'assets/living.jpg', area: 'Main Level', title: 'Living & Hearth', caption: 'A three-sided stone fireplace anchors the open living room beneath the dramatic peaked ceiling.', hotspots: [{ x: 63, y: 46, to: 5, label: 'Dining' }] },
+    { img: 'assets/kitchen.jpg', area: 'Main Level', title: 'The Kitchen', caption: 'Granite-topped island, stainless appliances, and casual seating tucked beneath the loft railing.', hotspots: [{ x: 56, y: 44, to: 5, label: 'Dining' }] },
+    { img: 'assets/dining.jpg', area: 'Main Level', title: 'The Dining Area', caption: 'A glass dining table sits under skylights beside a hand-painted tropical mural and column detail.', hotspots: [{ x: 82, y: 52, to: 6, label: 'Sun Room' }] },
+    { img: 'assets/sunroom.jpg', area: 'Main Level', title: 'Open Living', caption: 'The living spaces flow together — sofas, dining, and kitchen wrapped in walls of natural light.', hotspots: [{ x: 50, y: 56, to: 7, label: 'Lounge' }] },
+    { img: 'assets/lounge.jpg', area: 'Main Level', title: 'The Lounge', caption: 'A relaxed coastal sitting room with canal views framed through the surrounding sunroom windows.', hotspots: [{ x: 80, y: 52, to: 8, label: 'Bedrooms' }] },
+    { img: 'assets/bedroom1.jpg', area: 'Bedrooms', title: 'Guest Bedroom', caption: 'A bright, breezy bedroom with dual windows, seashell linens, and its own mounted television.', hotspots: [{ x: 50, y: 56, to: 9, label: 'Next Room' }] },
+    { img: 'assets/bedroom2.jpg', area: 'Bedrooms', title: 'Bedroom Suite', caption: 'A carpeted bedroom opening directly to a private vanity bath — quiet and tucked away.', hotspots: [{ x: 88, y: 50, to: 11, label: 'The Bath' }, { x: 16, y: 56, to: 10, label: 'The Loft' }] },
+    { img: 'assets/loft.jpg', area: 'Upper Level', title: 'The Loft Retreat', caption: 'An expansive upstairs loft with twin queen beds, a skylight, and an en-suite bath of its own.', hotspots: [{ x: 70, y: 52, to: 12, label: 'To the Deck' }] },
+    { img: 'assets/bath.jpg', area: 'Bathrooms', title: 'The Bath', caption: 'A full bath finished in warm stone tile, with a vaulted ceiling and an octagonal accent window.', hotspots: [{ x: 22, y: 54, to: 10, label: 'The Loft' }] },
+    { img: 'assets/deck.jpg', area: 'Outdoors', title: 'Waterfront Deck', caption: 'A wide composite deck looks out over the canal toward the distant Ocean City skyline.', hotspots: [{ x: 55, y: 60, to: 13, label: 'The Canal' }] },
+    { img: 'assets/waterfront.jpg', area: 'Outdoors', title: 'On the Canal', caption: 'Private bulkheaded dockage on a protected canal — just minutes by boat to the open bay.', hotspots: [{ x: 28, y: 54, to: 14, label: 'Backyard' }] },
+    { img: 'assets/backyard.jpg', area: 'Outdoors', title: 'The Backyard', caption: 'An open yard with a storage shed, concrete patio, and direct, walk-out access to the water.', hotspots: [{ x: 82, y: 50, to: 15, label: 'Rear View' }] },
+    { img: 'assets/ext-back.jpg', area: 'Exterior', title: 'Rear Elevation', caption: 'The home’s signature A-frame profile paired with a generous, glass-wrapped sunroom addition.', hotspots: [{ x: 20, y: 56, to: 0, label: 'Start Over' }] },
+  ];
+
+  cur() { return this.state.curIdx; }
+
+  go = (i) => {
+    const n = ((i % this.scenes.length) + this.scenes.length) % this.scenes.length;
+    if (n === this.state.curIdx) { this.setState({ showIndex: false }); return; }
+    this.setState({ prevIdx: this.state.curIdx, curIdx: n, navCount: this.state.navCount + 1, showIndex: false });
+  };
+  next = () => this.go(this.cur() + 1);
+  prev = () => this.go(this.cur() - 1);
+  begin = () => this.setState({ started: true });
+
+  onMove = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    const upd = { mx: (x - 0.5) * 2, my: (y - 0.5) * 2 };
+    if (!this.state.hintSeen) upd.hintSeen = true;
+    this.setState(upd);
+  };
+  onLeave = () => this.setState({ mx: 0, my: 0 });
+
+  toggleAutoplay = () => this.setState(s => ({ autoplay: !s.autoplay }));
+  toggleIndex = () => this.setState(s => ({ showIndex: !s.showIndex }));
+
+  depth() { return this.props.parallax != null ? this.props.parallax : 1; }
+
+  componentDidMount() {
+    this._lastNav = this.state.navCount;
+    this._lastAuto = this.state.autoplay;
+    this.scenes.forEach(s => { const im = new Image(); im.src = s.img; });
+    this._key = (e) => {
+      if (!this.state.started) return;
+      if (e.key === 'ArrowRight') this.next();
+      else if (e.key === 'ArrowLeft') this.prev();
+      else if (e.key === 'Escape') this.setState({ showIndex: false });
+    };
+    window.addEventListener('keydown', this._key);
+  }
+  componentDidUpdate() {
+    if (this._lastAuto !== this.state.autoplay) {
+      this._lastAuto = this.state.autoplay;
+      clearInterval(this._t);
+      if (this.state.autoplay) {
+        const sec = (this.props.autoplaySeconds || 5) * 1000;
+        this._t = setInterval(() => this.next(), sec);
+      }
+    }
+  }
+  componentWillUnmount() { clearInterval(this._t); window.removeEventListener('keydown', this._key); }
+
+  panWrap(sc, zoom) {
+    const s = this.state, d = this.depth();
+    const pan = `translate(${s.mx * -1.4 * d}%, ${s.my * -1.0 * d}%) scale(${1.05 + 0.02 * d})`;
+    return React.createElement('div', { style: { position: 'absolute', inset: 0, animation: zoom ? 'tourZoom 1s cubic-bezier(.16,.84,.34,1) both' : 'none' } },
+      React.createElement('div', { style: { position: 'absolute', inset: '-5%', transform: pan, transition: 'transform .25s ease-out', willChange: 'transform' } },
+        React.createElement('img', { src: sc.img, alt: sc.title, style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } })
+      )
+    );
+  }
+  baseLayer() {
+    return React.createElement('div', { key: 'base', style: { position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 1 } },
+      this.panWrap(this.scenes[this.state.prevIdx], false));
+  }
+  topLayer() {
+    return React.createElement('div', { key: 'top' + this.state.navCount, style: { position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 2 } },
+      this.panWrap(this.scenes[this.state.curIdx], true));
+  }
+
+  renderVals() {
+    const s = this.state, d = this.depth(), sc = this.scenes[this.cur()];
+    const showHs = this.props.showHotspots !== false && s.started;
+    const hotspots = showHs ? (sc.hotspots || []).map((h, k) => ({
+      key: this.cur() + '-' + k,
+      label: h.label,
+      onClick: () => this.go(h.to),
+      posStyle: {
+        position: 'absolute', left: h.x + '%', top: h.y + '%',
+        transform: `translate(calc(-50% + ${s.mx * -2.6 * d}%), calc(-50% + ${s.my * -2.0 * d}%))`,
+        transition: 'transform .25s ease-out',
+        background: 'none', border: 0, padding: 0, margin: 0, cursor: 'pointer', pointerEvents: 'auto',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'inherit',
+      },
+    })) : [];
+    const curI = this.cur();
+    const thumbs = this.scenes.map((x, i) => ({
+      key: i, img: x.img, title: x.title, area: x.area, num: String(i + 1).padStart(2, '0'),
+      onClick: () => this.go(i),
+      frameStyle: { position: 'relative', aspectRatio: '4 / 3', borderRadius: '10px', overflow: 'hidden', border: i === curI ? '2px solid #7ac8ba' : '2px solid rgba(255,255,255,.08)', boxShadow: i === curI ? '0 0 0 4px rgba(122,200,186,.18)' : 'none', backgroundImage: 'url("' + x.img + '")', backgroundSize: 'cover', backgroundPosition: 'center', transition: 'transform .4s ease' },
+      dotStyle: { position: 'absolute', right: '10px', top: '11px', width: '8px', height: '8px', borderRadius: '999px', background: i === curI ? '#7ac8ba' : 'transparent', boxShadow: i === curI ? '0 0 10px #7ac8ba' : 'none' },
+    }));
+    return {
+      photoBase: this.baseLayer(), photoTop: this.topLayer(),
+      started: s.started, notStarted: !s.started, begin: this.begin,
+      sceneTitle: sc.title, sceneArea: sc.area, sceneCaption: sc.caption,
+      num: String(curI + 1).padStart(2, '0'), total: String(this.scenes.length).padStart(2, '0'),
+      progressPct: (curI / (this.scenes.length - 1)) * 100 + '%',
+      hotspots, thumbs,
+      next: this.next, prev: this.prev, onMove: this.onMove, onLeave: this.onLeave,
+      autoplay: s.autoplay, toggleAutoplay: this.toggleAutoplay,
+      autoLabel: s.autoplay ? 'Pause' : 'Auto', autoGlyph: s.autoplay ? '❚❚' : '▶',
+      showIndex: s.showIndex, toggleIndex: this.toggleIndex,
+      showHint: s.started && !s.hintSeen,
+    };
+  }
+}
+</script>
+</body>
+</html>
